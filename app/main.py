@@ -1,0 +1,122 @@
+import os
+import logging
+from fastapi import FastAPI, Request, HTTPException
+from database import init_db
+from transcriber import transcribe_audio
+from llm import parse_message
+from tasks import (
+    handle_compra,
+    handle_venta_pendiente,
+    handle_confirmacion,
+    handle_agregar_contacto,
+    handle_eliminar_contacto,
+)
+from reports import send_reporte_diario
+from whatsapp import download_audio, send_text_message
+
+logger = logging.getLogger(__name__)
+
+app = FastAPI()
+
+WA_VERIFY_TOKEN = os.getenv("WA_VERIFY_TOKEN")
+OWNER_NUMBER = os.getenv("OWNER_NUMBER")
+
+TEXT_COMMANDS = {
+    "SI": handle_confirmacion,
+    "NO": lambda n: handle_confirmacion(n, confirmar=False),
+    "REPORTE DIARIO": send_reporte_diario,
+}
+
+
+@app.on_event("startup")
+async def startup():
+    await init_db()
+
+
+@app.get("/webhook")
+async def verify_webhook(request: Request):
+    params = request.query_params
+    if params.get("hub.verify_token") == WA_VERIFY_TOKEN:
+        return int(params.get("hub.challenge"))
+    raise HTTPException(status_code=403, detail="Invalid verify token")
+
+
+@app.post("/webhook")
+async def receive_message(request: Request):
+    body = await request.json()
+
+    try:
+        entry = body["entry"][0]["changes"][0]["value"]
+        message = entry["messages"][0]
+    except (KeyError, IndexError):
+        return {"status": "ignored"}
+
+    from_number = message.get("from")
+
+    # Solo procesar mensajes del dueño
+    if from_number != OWNER_NUMBER:
+        return {"status": "ignored"}
+
+    msg_type = message.get("type")
+
+    if msg_type == "audio":
+        media_id = message["audio"]["id"]
+        audio_path = await download_audio(media_id)
+        text = await transcribe_audio(audio_path)
+        await route_voice(text, from_number)
+
+    elif msg_type == "text":
+        text = message["text"]["body"].strip().upper()
+        await route_text(text, from_number)
+
+    return {"status": "ok"}
+
+
+async def route_text(text: str, from_number: str):
+    """Rutea comandos de texto del dueño."""
+
+    # Comandos exactos
+    if text in TEXT_COMMANDS:
+        await TEXT_COMMANDS[text](from_number)
+        return
+
+    # AGREGAR NOMBRE TELEFONO
+    if text.startswith("AGREGAR "):
+        parts = text.split()
+        if len(parts) == 3:
+            await handle_agregar_contacto(parts[1], parts[2], from_number)
+        else:
+            await send_text_message(from_number, "❌ Formato: AGREGAR NOMBRE TELEFONO")
+        return
+
+    # ELIMINAR NOMBRE
+    if text.startswith("ELIMINAR "):
+        parts = text.split()
+        if len(parts) == 2:
+            await handle_eliminar_contacto(parts[1], from_number)
+        else:
+            await send_text_message(from_number, "❌ Formato: ELIMINAR NOMBRE")
+        return
+
+    await send_text_message(
+        from_number,
+        "❓ Comando no reconocido.\n\nComandos disponibles:\n• SI / NO\n• REPORTE DIARIO\n• AGREGAR NOMBRE TELEFONO\n• ELIMINAR NOMBRE",
+    )
+
+
+async def route_voice(text: str, from_number: str):
+    """Parsea el mensaje de voz y lo rutea al handler correspondiente."""
+    logger.info("Texto transcripto: %s", text)
+    result = await parse_message(text)
+
+    if result["tipo"] == "compra":
+        await handle_compra(result["items"], from_number)
+    elif result["tipo"] == "venta":
+        await handle_venta_pendiente(result["cliente"], result["items"], from_number)
+    else:
+        await send_text_message(from_number, f"❓ No entendí el mensaje.\nTranscripción: _{text}_")
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
