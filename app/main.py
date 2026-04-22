@@ -99,7 +99,7 @@ async def route_text(text: str, from_number: str):
 
     await send_text_message(
         from_number,
-        "❓ Comando no reconocido.\n\nComandos disponibles:\n• SI / NO\n• REPORTE DIARIO\n• AGREGAR NOMBRE TELEFONO\n• ELIMINAR NOMBRE",
+        "❓ Comando no reconocido.\n\nComandos disponibles:\n• SI / NO\n• REPORTE DIARIO\n• DAME EL STOCK\n• DAME EL SALDO\n• DAME LOS CLIENTES\n• AGREGAR NOMBRE TELEFONO\n• ELIMINAR NOMBRE",
     )
 
 
