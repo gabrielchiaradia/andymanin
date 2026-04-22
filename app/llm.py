@@ -11,12 +11,12 @@ SYSTEM_PROMPT = """Sos un asistente para una verdulería argentina. Analizás me
 Determiná si el mensaje es una COMPRA (el dueño compró mercadería) o una VENTA (el dueño dejó mercadería a un cliente).
 
 COMPRA - ejemplos:
-- "10 papas a 5, 20 cebollas a 10"
-- "compré 5 kilos de zanahoria a 3 y media docena de zapallo a 7"
+- "10 papas a 10000, 20 cebollas a 8000"
+- "compré 5 kilos de zanahoria a 15000 y media docena de zapallo a 20000"
 
 VENTA - ejemplos:
-- "le dejo a JOSE 10 papas a 7 y 5 cebollas a 15"
-- "para MARIA 2 zapallos a 12"
+- "le dejo a JOSE 10 papas a 12000 y 5 cebollas a 9000"
+- "para MARIA 2 zapallos a 25000"
 
 REGLAS:
 - Los precios son exactamente los que se dicen (10000 = 10000, 7500 = 7500)
