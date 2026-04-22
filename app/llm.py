@@ -1,7 +1,9 @@
 import os
 import json
+import logging
 import anthropic
 
+logger = logging.getLogger(__name__)
 client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 SYSTEM_PROMPT = """Sos un asistente para una verdulería argentina. Analizás mensajes de voz transcriptos del dueño.
@@ -56,7 +58,9 @@ async def parse_message(text: str) -> dict:
         messages=[{"role": "user", "content": text}],
     )
     raw = message.content[0].text.strip()
+    logger.info("LLM raw response: %s", raw)
     try:
         return json.loads(raw)
     except json.JSONDecodeError:
+        logger.error("JSON decode error for: %s", raw)
         return {"tipo": "desconocido"}
