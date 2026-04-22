@@ -229,13 +229,17 @@ async def handle_cobro_cliente(cliente: str, monto: float, owner_number: str):
 # ── Gestión de contactos ───────────────────────────────────────────────────────
 
 def _normalizar_telefono(telefono: str) -> str:
-    t = telefono.strip().replace(" ", "").replace("-", "")
-    if not t.startswith("+"):
-        if t.startswith("54"):
-            t = f"+{t}"
-        else:
-            t = f"+54{t}"
-    return t
+    t = telefono.strip().replace(" ", "").replace("-", "").lstrip("+")
+    if t.startswith("549"):
+        pass
+    elif t.startswith("54"):
+        t = f"54 9{t[2:]}"
+        t = t.replace(" ", "")
+    elif t.startswith("9"):
+        t = f"54{t}"
+    else:
+        t = f"549{t}"
+    return f"+{t}"
 
 
 async def handle_agregar_contacto(nombre: str, telefono: str, owner_number: str):
