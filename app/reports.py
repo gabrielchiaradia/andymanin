@@ -106,3 +106,22 @@ def _generar_pdf_ganancias(items: list[VentaItem], fecha: str) -> str:
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
     pdf.output(tmp.name)
     return tmp.name
+
+
+async def send_saldo_caja(owner_number: str):
+    async with SessionLocal() as session:
+        saldo = await get_saldo_caja_hoy(session)
+    await whatsapp.send_text_message(owner_number, f"💰 *Saldo de caja — {date.today().strftime('%d/%m/%Y')}*\n\n{_fmt(saldo)}")
+
+
+async def send_stock_actual(owner_number: str):
+    async with SessionLocal() as session:
+        productos = await get_all_productos(session)
+    hoy = date.today().strftime("%d/%m/%Y")
+    lines = [f"📦 *Stock actual — {hoy}*\n"]
+    for p in productos:
+        if float(p.stock) > 0:
+            lines.append(f"• {p.nombre.capitalize()}: *{float(p.stock):g}* uds  |  costo prom: {_fmt(float(p.precio_promedio))}")
+    if len(lines) == 1:
+        lines.append("_Sin stock registrado_")
+    await whatsapp.send_text_message(owner_number, "\n".join(lines))
