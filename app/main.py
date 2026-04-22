@@ -1,6 +1,7 @@
 import os
 import logging
 from fastapi import FastAPI, Request, HTTPException
+from pydantic import BaseModel
 from database import init_db
 from transcriber import transcribe_audio
 from llm import parse_message
@@ -120,3 +121,58 @@ async def route_voice(text: str, from_number: str):
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+# ── Modo de prueba ─────────────────────────────────────────────────────────────
+
+class SimularRequest(BaseModel):
+    texto: str
+
+
+_mensajes_simulados: list[str] = []
+
+
+async def _send_simulado(to: str, text: str):
+    _mensajes_simulados.append(f"[→ {to}]\n{text}")
+
+
+@app.post("/simular")
+async def simular(req: SimularRequest):
+    """
+    Simula un mensaje del dueño sin usar WhatsApp.
+    Devuelve en la respuesta los mensajes que se habrían enviado.
+    Ejemplo: {"texto": "10 papas a 5, 20 cebollas a 10"}
+    """
+    import whatsapp as wa_module
+    _original_send = wa_module.send_text_message
+
+    # Reemplazar send_text_message temporalmente
+    wa_module.send_text_message = _send_simulado
+    _mensajes_simulados.clear()
+
+    try:
+        texto = req.texto.strip()
+        texto_upper = texto.upper()
+
+        if texto_upper in TEXT_COMMANDS:
+            await TEXT_COMMANDS[texto_upper]("SIMULADO")
+        elif texto_upper.startswith("AGREGAR "):
+            parts = texto_upper.split()
+            if len(parts) == 3:
+                await handle_agregar_contacto(parts[1], parts[2], "SIMULADO")
+        elif texto_upper.startswith("ELIMINAR "):
+            parts = texto_upper.split()
+            if len(parts) == 2:
+                await handle_eliminar_contacto(parts[1], "SIMULADO")
+        else:
+            result = await parse_message(texto)
+            if result["tipo"] == "compra":
+                await handle_compra(result["items"], "SIMULADO")
+            elif result["tipo"] == "venta":
+                await handle_venta_pendiente(result["cliente"], result["items"], "SIMULADO")
+            else:
+                return {"error": "No se pudo interpretar el mensaje", "llm": result}
+
+        return {"mensajes": _mensajes_simulados}
+    finally:
+        wa_module.send_text_message = _original_send
