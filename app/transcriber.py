@@ -9,7 +9,7 @@ def _get_model() -> WhisperModel:
     global _model
     if _model is None:
         # "base" es suficiente para mensajes cortos; "small" mejora precisión con poco overhead
-        _model = WhisperModel("base", device="cpu", compute_type="int8")
+        _model = WhisperModel("small", device="cpu", compute_type="int8")
     return _model
 
 
