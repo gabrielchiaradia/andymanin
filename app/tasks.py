@@ -228,9 +228,20 @@ async def handle_cobro_cliente(cliente: str, monto: float, owner_number: str):
 
 # ── Gestión de contactos ───────────────────────────────────────────────────────
 
+def _normalizar_telefono(telefono: str) -> str:
+    t = telefono.strip().replace(" ", "").replace("-", "")
+    if not t.startswith("+"):
+        if t.startswith("54"):
+            t = f"+{t}"
+        else:
+            t = f"+54{t}"
+    return t
+
+
 async def handle_agregar_contacto(nombre: str, telefono: str, owner_number: str):
     async with SessionLocal() as session:
         existente = await get_contacto_by_nombre(session, nombre)
+        telefono = _normalizar_telefono(telefono)
         if existente:
             existente.nombre = normalizar(nombre)
             existente.telefono = telefono
