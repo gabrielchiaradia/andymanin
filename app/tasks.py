@@ -41,10 +41,13 @@ async def handle_compra(items: list[dict], owner_number: str):
         await session.flush()
 
         lines = [f"✅ *Compra registrada*\n"]
+        total_compra = 0.0
         for item in items:
             nombre = item["producto"].lower()
             cantidad = float(item["cantidad"])
             precio = float(item["precio"])
+            subtotal = cantidad * precio
+            total_compra += subtotal
 
             producto = await get_producto_by_nombre(session, nombre)
             if producto is None:
@@ -55,7 +58,7 @@ async def handle_compra(items: list[dict], owner_number: str):
             stock_actual = float(producto.stock)
             costo_actual = float(producto.costo_total)
 
-            nuevo_costo = costo_actual + cantidad * precio
+            nuevo_costo = costo_actual + subtotal
             nuevo_stock = stock_actual + cantidad
             nuevo_precio_prom = nuevo_costo / nuevo_stock
 
@@ -74,6 +77,7 @@ async def handle_compra(items: list[dict], owner_number: str):
                 f"{_emoji(nombre)} {nombre.capitalize()}: {cantidad:g} uds  →  precio prom: {_fmt(nuevo_precio_prom)}"
             )
 
+        lines.append(f"\n💵 *Total compra: {_fmt(total_compra)}*")
         await session.commit()
 
     await whatsapp.send_text_message(owner_number, "\n".join(lines))
