@@ -1,11 +1,15 @@
 import os
-import tempfile
 from datetime import date
-from fpdf import FPDF
 from database import SessionLocal, get_all_productos, get_ventas_del_dia, get_saldo_caja_hoy, VentaItem
 import whatsapp
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
+
+EMOJIS = {
+    "papa": "🥔", "cebolla": "🧅", "zanahoria": "🥕", "zapallo": "🎃",
+    "brocoli": "🥦", "lechuga": "🥬", "rucula": "🌿", "puerro": "🌱",
+    "acelga": "🌿", "tomate": "🍅", "ajo": "🧄", "choclo": "🌽",
+}
 
 
 def _fmt(valor: float) -> str:
@@ -41,13 +45,32 @@ async def send_reporte_diario(owner_number: str):
         lines.append("_Sin stock registrado_")
 
     lines.append(f"\n💰 *Caja del día: {_fmt(saldo_caja)}*")
-
     await whatsapp.send_text_message(owner_number, "\n".join(lines))
 
-    # ── PDF de ganancias ──
-    pdf_path = _generar_pdf_ganancias(venta_items, hoy)
-    await whatsapp.send_document(owner_number, pdf_path, f"Ganancias_{hoy.replace('/', '-')}.pdf")
-    os.remove(pdf_path)
+    # ── Ganancias por WhatsApp ──
+    ganancia_lines = [f"📊 *Ganancias del día — {hoy}*\n"]
+    ganancia_total = 0.0
+    resumen: dict[str, dict] = {}
+
+    for item in venta_items:
+        nombre = item.producto.nombre.capitalize()
+        cant = float(item.cantidad)
+        ganancia = (float(item.precio_venta) - float(item.precio_costo)) * cant
+        if nombre not in resumen:
+            resumen[nombre] = {"cantidad": 0, "ganancia": 0}
+        resumen[nombre]["cantidad"] += cant
+        resumen[nombre]["ganancia"] += ganancia
+        ganancia_total += ganancia
+
+    if resumen:
+        for nombre, data in sorted(resumen.items()):
+            emoji = EMOJIS.get(nombre.lower(), "🥦")
+            ganancia_lines.append(f"{emoji} *{nombre}*: {data['cantidad']:g} uds  →  {_fmt(data['ganancia'])}")
+        ganancia_lines.append(f"\n💵 *Total: {_fmt(ganancia_total)}*")
+    else:
+        ganancia_lines.append("_Sin ventas registradas hoy_")
+
+    await whatsapp.send_text_message(owner_number, "\n".join(ganancia_lines))
 
 
 def _generar_pdf_ganancias(items: list[VentaItem], fecha: str) -> str:
