@@ -13,6 +13,17 @@ class Base(DeclarativeBase):
     pass
 
 
+class MovimientoCaja(Base):
+    __tablename__ = "movimientos_caja"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    # entrada_mercado | gasto_mercado | cobro_cliente
+    tipo: Mapped[str] = mapped_column(Text)
+    monto: Mapped[float] = mapped_column(Numeric(14, 2))
+    descripcion: Mapped[str] = mapped_column(Text, nullable=True)
+    fecha: Mapped[str] = mapped_column(DateTime, server_default=func.now())
+
+
 class Producto(Base):
     __tablename__ = "productos"
 
@@ -108,6 +119,35 @@ async def get_venta_pendiente(session) -> Venta | None:
 async def get_all_productos(session) -> list[Producto]:
     result = await session.execute(select(Producto).order_by(Producto.nombre))
     return list(result.scalars().all())
+
+
+async def get_saldo_caja_hoy(session) -> float:
+    from sqlalchemy import cast, Date
+    from datetime import date
+    result = await session.execute(
+        select(MovimientoCaja).where(cast(MovimientoCaja.fecha, Date) == date.today())
+    )
+    movimientos = list(result.scalars().all())
+    saldo = 0.0
+    for m in movimientos:
+        if m.tipo in ("entrada_mercado", "cobro_cliente"):
+            saldo += float(m.monto)
+        else:
+            saldo -= float(m.monto)
+    return saldo
+
+
+async def get_ultimo_entrada_mercado_hoy(session) -> "MovimientoCaja | None":
+    from sqlalchemy import cast, Date
+    from datetime import date
+    result = await session.execute(
+        select(MovimientoCaja)
+        .where(cast(MovimientoCaja.fecha, Date) == date.today())
+        .where(MovimientoCaja.tipo == "entrada_mercado")
+        .order_by(MovimientoCaja.id.desc())
+        .limit(1)
+    )
+    return result.scalar_one_or_none()
 
 
 async def get_ventas_del_dia(session) -> list[Venta]:

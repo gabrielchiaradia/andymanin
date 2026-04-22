@@ -13,6 +13,10 @@ from tasks import (
     handle_confirmacion,
     handle_agregar_contacto,
     handle_eliminar_contacto,
+    handle_entrada_mercado,
+    handle_gasto_mercado,
+    handle_regreso_mercado,
+    handle_cobro_cliente,
 )
 from reports import send_reporte_diario
 from whatsapp import download_audio, send_text_message
@@ -116,6 +120,14 @@ async def route_voice(text: str, from_number: str):
         await handle_compra(result["items"], from_number)
     elif result["tipo"] == "venta":
         await handle_venta_pendiente(result["cliente"], result["items"], from_number)
+    elif result["tipo"] == "entrada_mercado":
+        await handle_entrada_mercado(result["monto"], from_number)
+    elif result["tipo"] == "gasto_mercado":
+        await handle_gasto_mercado(result["monto"], from_number)
+    elif result["tipo"] == "regreso_mercado":
+        await handle_regreso_mercado(result["monto"], from_number)
+    elif result["tipo"] == "cobro_cliente":
+        await handle_cobro_cliente(result["cliente"], result["monto"], from_number)
     else:
         await send_text_message(from_number, f"❓ No entendí el mensaje.\nTranscripción: _{text}_")
 
@@ -174,6 +186,14 @@ async def simular(req: SimularRequest):
                     await handle_compra(result["items"], "SIMULADO")
                 elif result["tipo"] == "venta":
                     await handle_venta_pendiente(result["cliente"], result["items"], "SIMULADO")
+                elif result["tipo"] == "entrada_mercado":
+                    await handle_entrada_mercado(result["monto"], "SIMULADO")
+                elif result["tipo"] == "gasto_mercado":
+                    await handle_gasto_mercado(result["monto"], "SIMULADO")
+                elif result["tipo"] == "regreso_mercado":
+                    await handle_regreso_mercado(result["monto"], "SIMULADO")
+                elif result["tipo"] == "cobro_cliente":
+                    await handle_cobro_cliente(result["cliente"], result["monto"], "SIMULADO")
                 else:
                     return {"error": "No se pudo interpretar el mensaje", "llm": result}
 

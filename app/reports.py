@@ -2,7 +2,7 @@ import os
 import tempfile
 from datetime import date
 from fpdf import FPDF
-from database import SessionLocal, get_all_productos, get_ventas_del_dia, VentaItem
+from database import SessionLocal, get_all_productos, get_ventas_del_dia, get_saldo_caja_hoy, VentaItem
 import whatsapp
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -16,6 +16,7 @@ async def send_reporte_diario(owner_number: str):
     async with SessionLocal() as session:
         productos = await get_all_productos(session)
         ventas = await get_ventas_del_dia(session)
+        saldo_caja = await get_saldo_caja_hoy(session)
 
         # Cargar items de ventas con producto
         venta_ids = [v.id for v in ventas]
@@ -38,6 +39,8 @@ async def send_reporte_diario(owner_number: str):
 
     if len(lines) == 1:
         lines.append("_Sin stock registrado_")
+
+    lines.append(f"\n💰 *Caja del día: {_fmt(saldo_caja)}*")
 
     await whatsapp.send_text_message(owner_number, "\n".join(lines))
 

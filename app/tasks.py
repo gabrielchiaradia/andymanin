@@ -8,9 +8,11 @@ from database import (
     CompraItem,
     Venta,
     VentaItem,
+    MovimientoCaja,
     get_producto_by_nombre,
     get_contacto_by_nombre,
     get_venta_pendiente,
+    get_ultimo_entrada_mercado_hoy,
 )
 import whatsapp
 
@@ -183,6 +185,44 @@ async def handle_confirmacion(owner_number: str, confirmar: bool = True):
 
     await whatsapp.send_text_message(owner_number, "✅ Venta confirmada. Enviando ticket al cliente...")
     await whatsapp.send_text_message(telefono, ticket)
+
+
+# ── Caja ──────────────────────────────────────────────────────────────────────
+
+async def handle_entrada_mercado(monto: float, owner_number: str):
+    async with SessionLocal() as session:
+        session.add(MovimientoCaja(tipo="entrada_mercado", monto=monto, descripcion=f"Salida al mercado con {_fmt(monto)}"))
+        await session.commit()
+    await whatsapp.send_text_message(owner_number, f"💼 Registrado: salís al mercado con *{_fmt(monto)}*")
+
+
+async def handle_gasto_mercado(monto: float, owner_number: str):
+    async with SessionLocal() as session:
+        session.add(MovimientoCaja(tipo="gasto_mercado", monto=monto, descripcion=f"Gasto en mercado: {_fmt(monto)}"))
+        await session.commit()
+    await whatsapp.send_text_message(owner_number, f"🛒 Registrado: gastaste *{_fmt(monto)}* en el mercado")
+
+
+async def handle_regreso_mercado(monto_regreso: float, owner_number: str):
+    async with SessionLocal() as session:
+        ultima = await get_ultimo_entrada_mercado_hoy(session)
+        if ultima is None:
+            await whatsapp.send_text_message(owner_number, "❌ No encontré ninguna salida al mercado registrada hoy.")
+            return
+        gastado = float(ultima.monto) - monto_regreso
+        if gastado < 0:
+            await whatsapp.send_text_message(owner_number, f"❌ El monto de regreso ({_fmt(monto_regreso)}) es mayor al que llevaste ({_fmt(float(ultima.monto))}).")
+            return
+        session.add(MovimientoCaja(tipo="gasto_mercado", monto=gastado, descripcion=f"Regresaste con {_fmt(monto_regreso)}, gastaste {_fmt(gastado)}"))
+        await session.commit()
+    await whatsapp.send_text_message(owner_number, f"🏠 Registrado: volviste con *{_fmt(monto_regreso)}*, gastaste *{_fmt(gastado)}* en el mercado")
+
+
+async def handle_cobro_cliente(cliente: str, monto: float, owner_number: str):
+    async with SessionLocal() as session:
+        session.add(MovimientoCaja(tipo="cobro_cliente", monto=monto, descripcion=f"Cobro de {cliente}: {_fmt(monto)}"))
+        await session.commit()
+    await whatsapp.send_text_message(owner_number, f"💰 Registrado: *{cliente}* te pagó *{_fmt(monto)}*")
 
 
 # ── Gestión de contactos ───────────────────────────────────────────────────────
