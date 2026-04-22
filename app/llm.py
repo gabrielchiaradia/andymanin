@@ -58,7 +58,11 @@ async def parse_message(text: str) -> dict:
         messages=[{"role": "user", "content": text}],
     )
     raw = message.content[0].text.strip()
-    logger.info("LLM raw response: %s", raw)
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+        raw = raw.strip()
     try:
         return json.loads(raw)
     except json.JSONDecodeError:
