@@ -127,10 +127,10 @@ async def get_all_productos(session) -> list[Producto]:
 
 
 async def get_saldo_caja_hoy(session) -> float:
-    from sqlalchemy import cast, Date
     from datetime import date
+    hoy = str(date.today())
     result = await session.execute(
-        select(MovimientoCaja).where(cast(MovimientoCaja.fecha, Date) == date.today())
+        select(MovimientoCaja).where(func.date(MovimientoCaja.fecha) == hoy)
     )
     movimientos = list(result.scalars().all())
     saldo = 0.0
@@ -143,11 +143,11 @@ async def get_saldo_caja_hoy(session) -> float:
 
 
 async def get_ultimo_entrada_mercado_hoy(session) -> "MovimientoCaja | None":
-    from sqlalchemy import cast, Date
     from datetime import date
+    hoy = str(date.today())
     result = await session.execute(
         select(MovimientoCaja)
-        .where(cast(MovimientoCaja.fecha, Date) == date.today())
+        .where(func.date(MovimientoCaja.fecha) == hoy)
         .where(MovimientoCaja.tipo == "entrada_mercado")
         .order_by(MovimientoCaja.id.desc())
         .limit(1)
@@ -156,11 +156,11 @@ async def get_ultimo_entrada_mercado_hoy(session) -> "MovimientoCaja | None":
 
 
 async def get_ventas_del_dia(session) -> list[Venta]:
-    from sqlalchemy import cast, Date
     from datetime import date
+    hoy = str(date.today())
     result = await session.execute(
         select(Venta)
         .where(Venta.estado == "confirmada")
-        .where(cast(Venta.fecha, Date) == date.today())
+        .where(func.date(Venta.fecha) == hoy)
     )
     return list(result.scalars().all())
