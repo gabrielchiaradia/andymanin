@@ -19,7 +19,7 @@ VENTA - ejemplos:
 - "para MARIA 2 zapallos a 12"
 
 REGLAS:
-- Los precios siempre son en miles de pesos (5 = 5000, 7.5 = 7500)
+- Los precios son exactamente los que se dicen (10000 = 10000, 7500 = 7500)
 - "media" = 0.5, "un cuarto" = 0.25, "docena" = 12, "media docena" = 6
 - Los nombres de productos normalizalos en singular y minúsculas (papas → papa, cebollas → cebolla)
 - Los nombres de clientes en MAYÚSCULAS
