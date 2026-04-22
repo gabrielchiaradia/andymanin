@@ -14,6 +14,7 @@ from tasks import (
     handle_confirmacion,
     handle_agregar_contacto,
     handle_eliminar_contacto,
+    handle_eliminar_producto,
     handle_entrada_mercado,
     handle_gasto_mercado,
     handle_regreso_mercado,
@@ -88,18 +89,20 @@ async def route_text(text: str, from_number: str):
             await send_text_message(from_number, "❌ Formato: AGREGAR NOMBRE TELEFONO")
         return
 
-    # ELIMINAR NOMBRE
+    # ELIMINAR NOMBRE o ELIMINAR PRODUCTO NOMBRE
     if text.startswith("ELIMINAR "):
         parts = text.split()
-        if len(parts) == 2:
+        if len(parts) == 3 and parts[1] == "PRODUCTO":
+            await handle_eliminar_producto(parts[2], from_number)
+        elif len(parts) == 2:
             await handle_eliminar_contacto(parts[1], from_number)
         else:
-            await send_text_message(from_number, "❌ Formato: ELIMINAR NOMBRE")
+            await send_text_message(from_number, "❌ Formato: ELIMINAR NOMBRE o ELIMINAR PRODUCTO NOMBRE")
         return
 
     await send_text_message(
         from_number,
-        "❓ Comando no reconocido.\n\nComandos disponibles:\n• SI / NO\n• REPORTE DIARIO\n• DAME EL STOCK\n• DAME EL SALDO\n• DAME LOS CLIENTES\n• AGREGAR NOMBRE TELEFONO\n• ELIMINAR NOMBRE",
+        "❓ Comando no reconocido.\n\nComandos disponibles:\n• SI / NO\n• REPORTE DIARIO\n• DAME EL STOCK\n• DAME EL SALDO\n• DAME LOS CLIENTES\n• AGREGAR NOMBRE TELEFONO\n• ELIMINAR NOMBRE\n• ELIMINAR PRODUCTO NOMBRE",
     )
 
 

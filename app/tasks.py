@@ -226,6 +226,19 @@ async def handle_cobro_cliente(cliente: str, monto: float, owner_number: str):
     await whatsapp.send_text_message(owner_number, f"💰 Registrado: *{cliente}* te pagó *{_fmt(monto)}*")
 
 
+# ── Gestión de productos ──────────────────────────────────────────────────────
+
+async def handle_eliminar_producto(nombre: str, owner_number: str):
+    async with SessionLocal() as session:
+        producto = await get_producto_by_nombre(session, nombre)
+        if producto is None:
+            await whatsapp.send_text_message(owner_number, f"❌ Producto *{nombre}* no encontrado.")
+            return
+        await session.delete(producto)
+        await session.commit()
+    await whatsapp.send_text_message(owner_number, f"✅ Producto *{nombre}* eliminado del stock.")
+
+
 # ── Gestión de contactos ───────────────────────────────────────────────────────
 
 def _normalizar_telefono(telefono: str) -> str:
