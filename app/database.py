@@ -107,11 +107,17 @@ async def get_producto_by_nombre(session, nombre: str) -> Producto | None:
 
 
 async def get_contacto_by_nombre(session, nombre: str) -> Contacto | None:
+    from rapidfuzz import process, fuzz
     nombre_norm = normalizar(nombre.strip())
-    result = await session.execute(
-        select(Contacto).where(func.upper(Contacto.nombre) == nombre_norm)
-    )
-    return result.scalar_one_or_none()
+    result = await session.execute(select(Contacto).where(Contacto.activo == True))
+    contactos = list(result.scalars().all())
+    if not contactos:
+        return None
+    nombres = [c.nombre for c in contactos]
+    match = process.extractOne(nombre_norm, nombres, scorer=fuzz.ratio)
+    if match and match[1] >= 70:
+        return next(c for c in contactos if c.nombre == match[0])
+    return None
 
 
 async def get_all_contactos(session) -> list[Contacto]:
