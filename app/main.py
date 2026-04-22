@@ -1,6 +1,7 @@
 import os
 import logging
 from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from database import init_db
@@ -25,7 +26,6 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-WA_VERIFY_TOKEN = os.getenv("WA_VERIFY_TOKEN")
 OWNER_NUMBER = os.getenv("OWNER_NUMBER")
 
 TEXT_COMMANDS = {
@@ -42,43 +42,32 @@ async def startup():
     await init_db()
 
 
-@app.get("/webhook")
-async def verify_webhook(request: Request):
-    params = request.query_params
-    if params.get("hub.verify_token") == WA_VERIFY_TOKEN:
-        return int(params.get("hub.challenge"))
-    raise HTTPException(status_code=403, detail="Invalid verify token")
-
-
 @app.post("/webhook")
 async def receive_message(request: Request):
-    body = await request.json()
+    form = await request.form()
 
-    try:
-        entry = body["entry"][0]["changes"][0]["value"]
-        message = entry["messages"][0]
-    except (KeyError, IndexError):
-        return {"status": "ignored"}
+    from_number = form.get("From", "").replace("whatsapp:", "")
+    owner = OWNER_NUMBER.replace("whatsapp:", "").lstrip("+")
+    from_clean = from_number.lstrip("+")
 
-    from_number = message.get("from")
+    if from_clean != owner:
+        return PlainTextResponse("")
 
-    # Solo procesar mensajes del dueño
-    if from_number != OWNER_NUMBER:
-        return {"status": "ignored"}
+    num_media = int(form.get("NumMedia", 0))
 
-    msg_type = message.get("type")
-
-    if msg_type == "audio":
-        media_id = message["audio"]["id"]
-        audio_path = await download_audio(media_id)
-        text = await transcribe_audio(audio_path)
-        await route_voice(text, from_number)
-
-    elif msg_type == "text":
-        text = message["text"]["body"].strip().upper()
+    if num_media > 0:
+        media_url = form.get("MediaUrl0", "")
+        media_type = form.get("MediaContentType0", "")
+        if "audio" in media_type:
+            from whatsapp import download_audio
+            audio_path = await download_audio(media_url)
+            text = await transcribe_audio(audio_path)
+            await route_voice(text, from_number)
+    else:
+        text = form.get("Body", "").strip().upper()
         await route_text(text, from_number)
 
-    return {"status": "ok"}
+    return PlainTextResponse("")
 
 
 async def route_text(text: str, from_number: str):
