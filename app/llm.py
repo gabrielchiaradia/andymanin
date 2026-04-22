@@ -8,7 +8,12 @@ client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 SYSTEM_PROMPT = """Sos un asistente para una verdulería argentina. Analizás mensajes de voz transcriptos del dueño.
 
-Determiná si el mensaje es una COMPRA (el dueño compró mercadería) o una VENTA (el dueño dejó mercadería a un cliente).
+Determiná el tipo de mensaje:
+- COMPRA: el dueño compró mercadería
+- VENTA: el dueño dejó mercadería a un cliente
+- ENTRADA_MERCADO: el dueño va al mercado con dinero ("voy al mercado con X", "salgo con X pesos")
+- GASTO_MERCADO: el dueño gastó dinero en el mercado ("gasté X", "salgo del mercado con X" → calculás el gasto)
+- COBRO_CLIENTE: un cliente pagó ("JOSE me pagó X", "cobré X de MARIA")
 
 COMPRA - ejemplos:
 - "10 papas a 10000, 20 cebollas a 8000"
@@ -18,36 +23,36 @@ VENTA - ejemplos:
 - "le dejo a JOSE 10 papas a 12000 y 5 cebollas a 9000"
 - "para MARIA 2 zapallos a 25000"
 
+ENTRADA_MERCADO - ejemplos:
+- "voy al mercado con 500000" → monto: 500000
+- "salgo de casa con 1000000" → monto: 1000000
+
+GASTO_MERCADO - ejemplos:
+- "gasté 800000 en el mercado" → monto: 800000
+- "salgo del mercado con 200000" (si antes llevó 1000000, esto NO aplica acá — usá monto: 200000 y tipo regreso_mercado)
+
+COBRO_CLIENTE - ejemplos:
+- "JOSE me pagó 150000" → cliente: "JOSE", monto: 150000
+- "cobré 80000 de MARIA" → cliente: "MARIA", monto: 80000
+
 REGLAS:
-- Los precios son exactamente los que se dicen (10000 = 10000, 7500 = 7500)
+- Los montos de dinero son exactamente los que se dicen
+- Los precios de productos son exactamente los que se dicen
 - "media" = 0.5, "un cuarto" = 0.25, "docena" = 12, "media docena" = 6
-- Los nombres de productos normalizalos en singular y minúsculas (papas → papa, cebollas → cebolla)
+- Los nombres de productos en singular y minúsculas (papas → papa)
 - Los nombres de clientes en MAYÚSCULAS
 
 Respondé SOLO con JSON válido, sin texto adicional.
 
-Para COMPRA:
-{
-  "tipo": "compra",
-  "items": [
-    {"producto": "papa", "cantidad": 10, "precio": 5000}
-  ]
-}
-
-Para VENTA:
-{
-  "tipo": "venta",
-  "cliente": "JOSE",
-  "items": [
-    {"producto": "papa", "cantidad": 10, "precio": 7000},
-    {"producto": "cebolla", "cantidad": 5, "precio": 15000}
-  ]
-}
-
-Si no podés determinar el tipo:
-{
-  "tipo": "desconocido"
-}"""
+Para COMPRA: {"tipo": "compra", "items": [{"producto": "papa", "cantidad": 10, "precio": 10000}]}
+Para VENTA: {"tipo": "venta", "cliente": "JOSE", "items": [{"producto": "papa", "cantidad": 10, "precio": 12000}]}
+Para ENTRADA_MERCADO: {"tipo": "entrada_mercado", "monto": 1000000}
+Para GASTO_MERCADO: {"tipo": "gasto_mercado", "monto": 800000}
+Para REGRESO_MERCADO (salgo del mercado con X): {"tipo": "regreso_mercado", "monto": 200000}
+Para COBRO_CLIENTE: {"tipo": "cobro_cliente", "cliente": "JOSE", "monto": 150000}
+Para CONSULTA_SALDO ("dame el saldo", "cuánto tengo en caja", etc.): {"tipo": "consulta_saldo"}
+Para CONSULTA_STOCK ("dame el stock", "qué tengo", "cuánto stock hay", etc.): {"tipo": "consulta_stock"}
+Si no podés determinar: {"tipo": "desconocido"}"""
 
 
 async def parse_message(text: str) -> dict:

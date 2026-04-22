@@ -130,6 +130,10 @@ async def route_voice(text: str, from_number: str):
         await handle_regreso_mercado(result["monto"], from_number)
     elif result["tipo"] == "cobro_cliente":
         await handle_cobro_cliente(result["cliente"], result["monto"], from_number)
+    elif result["tipo"] == "consulta_saldo":
+        await send_saldo_caja(from_number)
+    elif result["tipo"] == "consulta_stock":
+        await send_stock_actual(from_number)
     else:
         await send_text_message(from_number, f"❓ No entendí el mensaje.\nTranscripción: _{text}_")
 
@@ -196,6 +200,10 @@ async def simular(req: SimularRequest):
                     await handle_regreso_mercado(result["monto"], "SIMULADO")
                 elif result["tipo"] == "cobro_cliente":
                     await handle_cobro_cliente(result["cliente"], result["monto"], "SIMULADO")
+                elif result["tipo"] == "consulta_saldo":
+                    await send_saldo_caja("SIMULADO")
+                elif result["tipo"] == "consulta_stock":
+                    await send_stock_actual("SIMULADO")
                 else:
                     return {"error": "No se pudo interpretar el mensaje", "llm": result}
 
