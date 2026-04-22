@@ -3,7 +3,7 @@ import tempfile
 from datetime import date
 from fpdf import FPDF
 from database import SessionLocal, get_all_productos, get_ventas_del_dia, VentaItem
-from whatsapp import send_text_message, send_document
+import whatsapp
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
@@ -39,11 +39,11 @@ async def send_reporte_diario(owner_number: str):
     if len(lines) == 1:
         lines.append("_Sin stock registrado_")
 
-    await send_text_message(owner_number, "\n".join(lines))
+    await whatsapp.send_text_message(owner_number, "\n".join(lines))
 
     # ── PDF de ganancias ──
     pdf_path = _generar_pdf_ganancias(venta_items, hoy)
-    await send_document(owner_number, pdf_path, f"Ganancias_{hoy.replace('/', '-')}.pdf")
+    await whatsapp.send_document(owner_number, pdf_path, f"Ganancias_{hoy.replace('/', '-')}.pdf")
     os.remove(pdf_path)
 
 

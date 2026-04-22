@@ -12,7 +12,7 @@ from database import (
     get_contacto_by_nombre,
     get_venta_pendiente,
 )
-from whatsapp import send_text_message
+import whatsapp
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +73,7 @@ async def handle_compra(items: list[dict], owner_number: str):
 
         await session.commit()
 
-    await send_text_message(owner_number, "\n".join(lines))
+    await whatsapp.send_text_message(owner_number, "\n".join(lines))
 
 
 # ── Proceso 2: Venta pendiente ─────────────────────────────────────────────────
@@ -82,7 +82,7 @@ async def handle_venta_pendiente(cliente_nombre: str, items: list[dict], owner_n
     async with SessionLocal() as session:
         contacto = await get_contacto_by_nombre(session, cliente_nombre)
         if contacto is None:
-            await send_text_message(
+            await whatsapp.send_text_message(
                 owner_number,
                 f"❌ Cliente *{cliente_nombre}* no encontrado.\nAgregalo con: AGREGAR {cliente_nombre} TELEFONO",
             )
@@ -93,7 +93,7 @@ async def handle_venta_pendiente(cliente_nombre: str, items: list[dict], owner_n
             producto = await get_producto_by_nombre(session, item["producto"])
             if producto is None or float(producto.stock) < float(item["cantidad"]):
                 disponible = float(producto.stock) if producto else 0
-                await send_text_message(
+                await whatsapp.send_text_message(
                     owner_number,
                     f"❌ Stock insuficiente de *{item['producto']}*.\nDisponible: {disponible:g} uds",
                 )
@@ -144,20 +144,20 @@ async def handle_venta_pendiente(cliente_nombre: str, items: list[dict], owner_n
         f"{ticket_text}\n\n"
         f"¿Está ok? Respondé *SI* o *NO*"
     )
-    await send_text_message(owner_number, confirmacion)
+    await whatsapp.send_text_message(owner_number, confirmacion)
 
 
 async def handle_confirmacion(owner_number: str, confirmar: bool = True):
     async with SessionLocal() as session:
         venta = await get_venta_pendiente(session)
         if venta is None:
-            await send_text_message(owner_number, "❌ No hay ninguna venta pendiente de confirmación.")
+            await whatsapp.send_text_message(owner_number, "❌ No hay ninguna venta pendiente de confirmación.")
             return
 
         if not confirmar:
             venta.estado = "cancelada"
             await session.commit()
-            await send_text_message(owner_number, "❌ Venta cancelada.")
+            await whatsapp.send_text_message(owner_number, "❌ Venta cancelada.")
             return
 
         # Confirmar: descontar stock
@@ -181,8 +181,8 @@ async def handle_confirmacion(owner_number: str, confirmar: bool = True):
         telefono = venta.contacto.telefono
         await session.commit()
 
-    await send_text_message(owner_number, "✅ Venta confirmada. Enviando ticket al cliente...")
-    await send_text_message(telefono, ticket)
+    await whatsapp.send_text_message(owner_number, "✅ Venta confirmada. Enviando ticket al cliente...")
+    await whatsapp.send_text_message(telefono, ticket)
 
 
 # ── Gestión de contactos ───────────────────────────────────────────────────────
@@ -194,20 +194,20 @@ async def handle_agregar_contacto(nombre: str, telefono: str, owner_number: str)
             existente.telefono = telefono
             existente.activo = True
             await session.commit()
-            await send_text_message(owner_number, f"✅ Contacto *{nombre}* actualizado.")
+            await whatsapp.send_text_message(owner_number, f"✅ Contacto *{nombre}* actualizado.")
         else:
             contacto = Contacto(nombre=nombre.upper(), telefono=telefono)
             session.add(contacto)
             await session.commit()
-            await send_text_message(owner_number, f"✅ Contacto *{nombre}* agregado.")
+            await whatsapp.send_text_message(owner_number, f"✅ Contacto *{nombre}* agregado.")
 
 
 async def handle_eliminar_contacto(nombre: str, owner_number: str):
     async with SessionLocal() as session:
         contacto = await get_contacto_by_nombre(session, nombre)
         if contacto is None:
-            await send_text_message(owner_number, f"❌ Contacto *{nombre}* no encontrado.")
+            await whatsapp.send_text_message(owner_number, f"❌ Contacto *{nombre}* no encontrado.")
             return
         contacto.activo = False
         await session.commit()
-        await send_text_message(owner_number, f"✅ Contacto *{nombre}* eliminado.")
+        await whatsapp.send_text_message(owner_number, f"✅ Contacto *{nombre}* eliminado.")
