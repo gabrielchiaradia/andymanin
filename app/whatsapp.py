@@ -20,7 +20,7 @@ def _to(number: str) -> str:
 
 
 async def download_audio(media_url: str) -> str:
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(follow_redirects=True) as client:
         resp = await client.get(media_url, auth=_auth())
         resp.raise_for_status()
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".ogg")
