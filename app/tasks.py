@@ -74,7 +74,7 @@ async def handle_compra(items: list[dict], owner_number: str):
             )
             session.add(compra_item)
             lines.append(
-                f"{_emoji(nombre)} {nombre.capitalize()}: {cantidad:g} uds  →  precio prom: {_fmt(nuevo_precio_prom)}"
+                f"{_emoji(nombre)} {nombre.capitalize()}: {cantidad:g} uds a {_fmt(precio)} c/u"
             )
 
         lines.append(f"\n💵 *Total compra: {_fmt(total_compra)}*")
