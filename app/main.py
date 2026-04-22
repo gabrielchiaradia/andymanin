@@ -19,7 +19,7 @@ from tasks import (
     handle_regreso_mercado,
     handle_cobro_cliente,
 )
-from reports import send_reporte_diario, send_saldo_caja, send_stock_actual
+from reports import send_reporte_diario, send_saldo_caja, send_stock_actual, send_lista_clientes
 from whatsapp import download_audio, send_text_message
 
 logger = logging.getLogger(__name__)
@@ -34,6 +34,7 @@ TEXT_COMMANDS = {
     "REPORTE DIARIO": send_reporte_diario,
     "DAME EL SALDO": send_saldo_caja,
     "DAME EL STOCK": send_stock_actual,
+    "DAME LOS CLIENTES": send_lista_clientes,
 }
 
 

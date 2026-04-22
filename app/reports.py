@@ -1,6 +1,6 @@
 import os
 from datetime import date
-from database import SessionLocal, get_all_productos, get_ventas_del_dia, get_saldo_caja_hoy, VentaItem
+from database import SessionLocal, get_all_productos, get_ventas_del_dia, get_saldo_caja_hoy, get_all_contactos, VentaItem
 import whatsapp
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -71,6 +71,18 @@ async def send_reporte_diario(owner_number: str):
         ganancia_lines.append("_Sin ventas registradas hoy_")
 
     await whatsapp.send_text_message(owner_number, "\n".join(ganancia_lines))
+
+
+async def send_lista_clientes(owner_number: str):
+    async with SessionLocal() as session:
+        contactos = await get_all_contactos(session)
+    if not contactos:
+        await whatsapp.send_text_message(owner_number, "📋 No hay clientes registrados.")
+        return
+    lines = ["📋 *Clientes registrados*\n"]
+    for c in contactos:
+        lines.append(f"• *{c.nombre}* — {c.telefono}")
+    await whatsapp.send_text_message(owner_number, "\n".join(lines))
 
 
 def _generar_pdf_ganancias(items: list[VentaItem], fecha: str) -> str:

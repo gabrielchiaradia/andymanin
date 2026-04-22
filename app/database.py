@@ -114,6 +114,13 @@ async def get_contacto_by_nombre(session, nombre: str) -> Contacto | None:
     return result.scalar_one_or_none()
 
 
+async def get_all_contactos(session) -> list[Contacto]:
+    result = await session.execute(
+        select(Contacto).where(Contacto.activo == True).order_by(Contacto.nombre)
+    )
+    return list(result.scalars().all())
+
+
 async def get_venta_pendiente(session) -> Venta | None:
     result = await session.execute(
         select(Venta).where(Venta.estado == "pendiente").order_by(Venta.id.desc()).limit(1)
