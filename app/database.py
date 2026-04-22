@@ -106,10 +106,13 @@ async def get_producto_by_nombre(session, nombre: str) -> Producto | None:
     return result.scalar_one_or_none()
 
 
-async def get_contacto_by_nombre(session, nombre: str) -> Contacto | None:
+async def get_contacto_by_nombre(session, nombre: str, solo_activos: bool = True) -> Contacto | None:
     from rapidfuzz import process, fuzz
     nombre_norm = normalizar(nombre.strip())
-    result = await session.execute(select(Contacto).where(Contacto.activo == True))
+    query = select(Contacto)
+    if solo_activos:
+        query = query.where(Contacto.activo == True)
+    result = await session.execute(query)
     contactos = list(result.scalars().all())
     if not contactos:
         return None

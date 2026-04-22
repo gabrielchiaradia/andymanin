@@ -244,7 +244,7 @@ def _normalizar_telefono(telefono: str) -> str:
 
 async def handle_agregar_contacto(nombre: str, telefono: str, owner_number: str):
     async with SessionLocal() as session:
-        existente = await get_contacto_by_nombre(session, nombre)
+        existente = await get_contacto_by_nombre(session, nombre, solo_activos=False)
         telefono = _normalizar_telefono(telefono)
         if existente:
             existente.nombre = normalizar(nombre)
