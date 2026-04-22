@@ -1,7 +1,12 @@
 from decimal import Decimal
+import unicodedata
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy import Text, DateTime, Numeric, ForeignKey, func, select
+
+
+def normalizar(texto: str) -> str:
+    return unicodedata.normalize("NFD", texto).encode("ascii", "ignore").decode("ascii").upper()
 
 DB_PATH = "sqlite+aiosqlite:////data/db.sqlite"
 
@@ -102,7 +107,7 @@ async def get_producto_by_nombre(session, nombre: str) -> Producto | None:
 
 
 async def get_contacto_by_nombre(session, nombre: str) -> Contacto | None:
-    nombre_norm = nombre.strip().upper()
+    nombre_norm = normalizar(nombre.strip())
     result = await session.execute(
         select(Contacto).where(func.upper(Contacto.nombre) == nombre_norm)
     )

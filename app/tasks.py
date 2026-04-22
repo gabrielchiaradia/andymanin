@@ -13,6 +13,7 @@ from database import (
     get_contacto_by_nombre,
     get_venta_pendiente,
     get_ultimo_entrada_mercado_hoy,
+    normalizar,
 )
 import whatsapp
 
@@ -231,12 +232,13 @@ async def handle_agregar_contacto(nombre: str, telefono: str, owner_number: str)
     async with SessionLocal() as session:
         existente = await get_contacto_by_nombre(session, nombre)
         if existente:
+            existente.nombre = normalizar(nombre)
             existente.telefono = telefono
             existente.activo = True
             await session.commit()
-            await whatsapp.send_text_message(owner_number, f"✅ Contacto *{nombre}* actualizado.")
+            await whatsapp.send_text_message(owner_number, f"✅ Contacto *{normalizar(nombre)}* actualizado.")
         else:
-            contacto = Contacto(nombre=nombre.upper(), telefono=telefono)
+            contacto = Contacto(nombre=normalizar(nombre), telefono=telefono)
             session.add(contacto)
             await session.commit()
             await whatsapp.send_text_message(owner_number, f"✅ Contacto *{nombre}* agregado.")
