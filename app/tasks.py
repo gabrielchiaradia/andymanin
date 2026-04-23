@@ -58,13 +58,12 @@ async def handle_compra(items: list[dict], owner_number: str):
             stock_actual = float(producto.stock)
             costo_actual = float(producto.costo_total)
 
-            nuevo_costo = costo_actual + precio_total
             nuevo_stock = stock_actual + cantidad
-            nuevo_precio_prom = nuevo_costo / nuevo_stock
+            nuevo_costo = nuevo_stock * precio_unitario
 
             producto.stock = nuevo_stock
             producto.costo_total = nuevo_costo
-            producto.precio_promedio = nuevo_precio_prom
+            producto.precio_promedio = precio_unitario
 
             compra_item = CompraItem(
                 compra_id=compra.id,
