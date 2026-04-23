@@ -1,5 +1,6 @@
 import os
 import logging
+logging.basicConfig(level=logging.INFO)
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
