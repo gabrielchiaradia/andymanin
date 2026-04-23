@@ -15,6 +15,7 @@ from tasks import (
     handle_agregar_contacto,
     handle_eliminar_contacto,
     handle_eliminar_producto,
+    handle_limpiar_stock,
     handle_entrada_mercado,
     handle_gasto_mercado,
     handle_regreso_mercado,
@@ -36,6 +37,7 @@ TEXT_COMMANDS = {
     "DAME EL SALDO": send_saldo_caja,
     "DAME EL STOCK": send_stock_actual,
     "DAME LOS CLIENTES": send_lista_clientes,
+    "LIMPIAR STOCK": handle_limpiar_stock,
 }
 
 

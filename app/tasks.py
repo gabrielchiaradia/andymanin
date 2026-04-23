@@ -45,9 +45,9 @@ async def handle_compra(items: list[dict], owner_number: str):
         for item in items:
             nombre = item["producto"].lower()
             cantidad = float(item["cantidad"])
-            precio = float(item["precio"])
-            subtotal = cantidad * precio
-            total_compra += subtotal
+            precio_total = float(item["precio"])  # precio es el total pagado por el lote
+            precio_unitario = precio_total / cantidad
+            total_compra += precio_total
 
             producto = await get_producto_by_nombre(session, nombre)
             if producto is None:
@@ -58,7 +58,7 @@ async def handle_compra(items: list[dict], owner_number: str):
             stock_actual = float(producto.stock)
             costo_actual = float(producto.costo_total)
 
-            nuevo_costo = costo_actual + subtotal
+            nuevo_costo = costo_actual + precio_total
             nuevo_stock = stock_actual + cantidad
             nuevo_precio_prom = nuevo_costo / nuevo_stock
 
@@ -70,11 +70,11 @@ async def handle_compra(items: list[dict], owner_number: str):
                 compra_id=compra.id,
                 producto_id=producto.id,
                 cantidad=cantidad,
-                precio_unitario=precio,
+                precio_unitario=precio_unitario,
             )
             session.add(compra_item)
             lines.append(
-                f"{_emoji(nombre)} {nombre.capitalize()}: {cantidad:g} uds a {_fmt(precio)} c/u"
+                f"{_emoji(nombre)} {nombre.capitalize()}: {cantidad:g} uds — total {_fmt(precio_total)} ({_fmt(precio_unitario)} c/u)"
             )
 
         lines.append(f"\n💵 *Total compra: {_fmt(total_compra)}*")
@@ -241,6 +241,18 @@ async def handle_eliminar_producto(nombre: str, owner_number: str):
         await session.delete(producto)
         await session.commit()
     await whatsapp.send_text_message(owner_number, f"✅ Producto *{nombre}* eliminado del stock.")
+
+
+async def handle_limpiar_stock(owner_number: str):
+    from sqlalchemy import select
+    from database import get_all_productos
+    async with SessionLocal() as session:
+        productos = await get_all_productos(session)
+        for p in productos:
+            p.stock = 0
+            p.costo_total = 0
+        await session.commit()
+    await whatsapp.send_text_message(owner_number, f"✅ Stock de {len(productos)} producto(s) puesto en 0.")
 
 
 # ── Gestión de contactos ───────────────────────────────────────────────────────

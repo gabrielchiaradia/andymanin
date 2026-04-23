@@ -15,9 +15,11 @@ Determiná el tipo de mensaje:
 - GASTO_MERCADO: el dueño gastó dinero en el mercado ("gasté X", "salgo del mercado con X" → calculás el gasto)
 - COBRO_CLIENTE: un cliente pagó ("JOSE me pagó X", "cobré X de MARIA")
 
-COMPRA - ejemplos:
-- "10 papas a 10000, 20 cebollas a 8000"
-- "compré 5 kilos de zanahoria a 15000 y media docena de zapallo a 20000"
+COMPRA - ejemplos (el precio es el TOTAL pagado por ese lote, no el precio unitario):
+- "10 papas a 10000" → precio: 10000 (pagó 10000 por las 10 papas, c/u sale 1000)
+- "2 acelgas a 10000" → precio: 10000 (pagó 10000 por las 2 acelgas)
+- "12 rucula a 3500" → precio: 3500 (pagó 3500 por las 12 unidades)
+- "compré 5 kilos de zanahoria a 15000 y media docena de zapallo a 20000" → items: [{zanahoria, 5, 15000}, {zapallo, 6, 20000}]
 
 VENTA - ejemplos:
 - "le dejo a JOSE 10 papas a 12000 y 5 cebollas a 9000"
